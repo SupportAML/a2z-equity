@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { X, Save, Plus, Trash2, ChevronDown } from "lucide-react";
 import { Investment } from "@/entities/Investment";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { base44 } from "@/api/base44Client";
 
 export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCancel }) {
   const [formData, setFormData] = useState({
