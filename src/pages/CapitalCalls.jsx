@@ -77,6 +77,34 @@ export default function CapitalCallsPage() {
     return deal ? deal.name : 'Unknown Deal';
   };
 
+  const checkAndUpdateDealFunding = async (dealId) => {
+    if (!dealId) return;
+
+    // Get all capital calls for this deal
+    const allCapitalActivities = await base44.entities.CapitalActivity.list();
+    const dealCalls = allCapitalActivities.filter(ca => ca.deal_id === dealId && ca.type === 'contribution');
+    
+    if (dealCalls.length === 0) return;
+
+    // Check if all calls are fully paid
+    let allPaid = true;
+    for (const call of dealCalls) {
+      const payments = allCapitalActivities.filter(
+        ca => ca.type === 'funds_received' && ca.related_contribution_id === call.id
+      );
+      const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+      if (totalPaid < call.amount) {
+        allPaid = false;
+        break;
+      }
+    }
+
+    // Update deal funding phase if all paid
+    if (allPaid) {
+      await base44.entities.Deal.update(dealId, { funding_phase: 'funded' });
+    }
+  };
+
   const handleRecordPayment = async () => {
     if (!recordPaymentDialog || !paymentAmount) return;
 
@@ -90,6 +118,8 @@ export default function CapitalCallsPage() {
         notes: paymentNotes || `Payment for capital call from ${new Date(recordPaymentDialog.date).toLocaleDateString()}`,
         related_contribution_id: recordPaymentDialog.id
       });
+
+      await checkAndUpdateDealFunding(recordPaymentDialog.deal_id);
 
       setRecordPaymentDialog(null);
       setPaymentAmount("");
@@ -124,6 +154,8 @@ export default function CapitalCallsPage() {
         notes: paymentNotes
       });
 
+      await checkAndUpdateDealFunding(editPaymentDialog.call.deal_id);
+
       setEditPaymentDialog(null);
       setPaymentAmount("");
       setPaymentNotes("");
@@ -133,11 +165,12 @@ export default function CapitalCallsPage() {
     }
   };
 
-  const handleDeletePayment = async (paymentId) => {
+  const handleDeletePayment = async (paymentId, dealId) => {
     if (!confirm("Are you sure you want to delete this payment?")) return;
 
     try {
       await base44.entities.CapitalActivity.delete(paymentId);
+      await checkAndUpdateDealFunding(dealId);
       loadData();
     } catch (error) {
       console.error("Error deleting payment:", error);
@@ -273,7 +306,7 @@ export default function CapitalCallsPage() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleDeletePayment(payment.id)}
+                                    onClick={() => handleDeletePayment(payment.id, call.deal_id)}
                                     className="text-red-600 hover:text-red-700"
                                   >
                                     <Trash2 className="w-3 h-3" />
