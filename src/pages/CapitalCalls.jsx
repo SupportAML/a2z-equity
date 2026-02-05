@@ -56,10 +56,22 @@ export default function CapitalCallsPage() {
       
       // For each call, find associated payments
       const callsWithPayments = calls.map(call => {
-        const payments = capitalActivities.filter(
-          ca => ca.type === 'funds_received' && 
-          ca.related_contribution_id === call.id
-        );
+        // Find payments explicitly linked to this call OR matching LP+deal (for legacy data)
+        const payments = capitalActivities.filter(ca => {
+          if (ca.type !== 'funds_received') return false;
+          
+          // Explicitly linked payment
+          if (ca.related_contribution_id === call.id) return true;
+          
+          // Legacy payment matching same LP + deal (no explicit link)
+          if (!ca.related_contribution_id && 
+              ca.lp_id === call.lp_id && 
+              ca.deal_id === call.deal_id) {
+            return true;
+          }
+          
+          return false;
+        });
         
         const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
         const outstanding = call.amount - totalPaid;
