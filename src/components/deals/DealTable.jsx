@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,6 @@ export default function DealTable({ deals, onEdit, onDelete, selectedDealsForWat
                         <TableHead className="w-12">Select</TableHead>
                         <TableHead>Deal Name</TableHead>
                         <TableHead>Investment</TableHead>
-                        <TableHead>Funding Status</TableHead>
                         <TableHead>Current Valuation</TableHead>
                         <TableHead>Snapshot Valuation</TableHead>
                         <TableHead>Entry Date</TableHead>
@@ -49,20 +49,6 @@ export default function DealTable({ deals, onEdit, onDelete, selectedDealsForWat
                                 </TableCell>
                                 <TableCell className="font-medium">{deal.name}</TableCell>
                                 <TableCell>${deal.investment_amount?.toLocaleString()}</TableCell>
-                                <TableCell>
-                                    {deal.funding_phase === 'staging' && (
-                                        <Badge className="bg-amber-100 text-amber-800">📋 Staging</Badge>
-                                    )}
-                                    {deal.funding_phase === 'funded' && deal.funding_status === 'fully_funded' && (
-                                        <Badge className="bg-green-100 text-green-800">✓ Funded & Paid</Badge>
-                                    )}
-                                    {deal.funding_phase === 'funded' && deal.funding_status === 'partially_funded' && (
-                                        <Badge className="bg-blue-100 text-blue-800">{deal.funding_percentage}% Collected</Badge>
-                                    )}
-                                    {!deal.funding_phase && (
-                                        <span className="text-slate-400 text-sm">Not set</span>
-                                    )}
-                                </TableCell>
                                 <TableCell>${deal.current_valuation?.toLocaleString()}</TableCell>
                                 <TableCell>
                                     {deal.valuation_at_date ? (

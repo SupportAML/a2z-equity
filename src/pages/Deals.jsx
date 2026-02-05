@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Deal } from "@/entities/Deal";
 import { Investment } from "@/entities/Investment";
@@ -37,47 +38,26 @@ export default function DealsPage() {
     const loadData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [dealsData, lpsData, investmentsData, gpsData, capitalActivitiesData] = await Promise.all([
+            const [dealsData, lpsData, investmentsData, gpsData] = await Promise.all([
                 Deal.list('-entry_date'),
                 LimitedPartner.list(),
                 Investment.list(),
-                GeneralPartner.list(),
-                CapitalActivity.list()
+                GeneralPartner.list()
             ]);
-            
-            // Calculate funding status for each deal
-            const dealsWithFundingStatus = dealsData.map(deal => {
-                const fundsReceived = capitalActivitiesData
-                    .filter(activity => activity.deal_id === deal.id && activity.type === 'funds_received')
-                    .reduce((sum, activity) => sum + activity.amount, 0);
-                
-                const fundingPercentage = deal.investment_amount > 0 
-                    ? Math.round((fundsReceived / deal.investment_amount) * 100)
-                    : 0;
-                
-                return {
-                    ...deal,
-                    funding_status: fundsReceived >= deal.investment_amount ? 'fully_funded' : 
-                                   fundsReceived > 0 ? 'partially_funded' : 'not_funded',
-                    funding_percentage: fundingPercentage,
-                    total_funds_received: fundsReceived
-                };
-            });
-            
-            setDeals(dealsWithFundingStatus);
+            setDeals(dealsData);
             setLps(lpsData);
             setInvestments(investmentsData);
             setGps(gpsData);
 
             // Default all deals to be selected for waterfall analysis
-            const allDealIds = new Set(dealsWithFundingStatus.map(deal => deal.id));
+            const allDealIds = new Set(dealsData.map(deal => deal.id));
             setSelectedDealsForWaterfall(allDealIds);
 
             // Check for deal_id in URL to pre-open edit form
             const urlParams = new URLSearchParams(window.location.search);
             const dealIdFromUrl = urlParams.get('deal_id');
             if (dealIdFromUrl) {
-                const dealToEdit = dealsWithFundingStatus.find(d => d.id === dealIdFromUrl);
+                const dealToEdit = dealsData.find(d => d.id === dealIdFromUrl);
                 if (dealToEdit) {
                     setEditingDeal(dealToEdit);
                     setShowForm(true);
