@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -8,7 +7,8 @@ import {
   Briefcase,
   BarChart3,
   Eye,
-  Building2 } from
+  Building2,
+  Mail } from
 "lucide-react";
 import {
   Sidebar,
@@ -50,6 +50,11 @@ const navigationItems = [
   title: "LP Portal",
   url: createPageUrl("LPPortal"),
   icon: Eye
+},
+{
+  title: "Communications",
+  url: createPageUrl("Communications"),
+  icon: Mail
 }];
 
 
