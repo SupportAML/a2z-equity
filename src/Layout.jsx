@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -40,6 +39,11 @@ const navigationItems = [
   title: "Deals",
   url: createPageUrl("Deals"),
   icon: Briefcase
+},
+{
+  title: "Capital Calls",
+  url: createPageUrl("CapitalCalls"),
+  icon: Building2
 },
 {
   title: "Analytics",

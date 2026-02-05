@@ -53,6 +53,7 @@ import Dashboard from './pages/Dashboard';
 import Deals from './pages/Deals';
 import LPPortal from './pages/LPPortal';
 import Partners from './pages/Partners';
+import CapitalCalls from './pages/CapitalCalls';
 import __Layout from './Layout.jsx';
 
 
@@ -63,6 +64,7 @@ export const PAGES = {
     "Deals": Deals,
     "LPPortal": LPPortal,
     "Partners": Partners,
+    "CapitalCalls": CapitalCalls,
 }
 
 export const pagesConfig = {
