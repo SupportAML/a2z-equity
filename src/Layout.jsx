@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -8,7 +7,8 @@ import {
   Briefcase,
   BarChart3,
   Eye,
-  Building2 } from
+  Building2,
+  TrendingUp } from
 "lucide-react";
 import {
   Sidebar,
@@ -40,6 +40,11 @@ const navigationItems = [
   title: "Deals",
   url: createPageUrl("Deals"),
   icon: Briefcase
+},
+{
+  title: "Deal Staging",
+  url: createPageUrl("DealStaging"),
+  icon: TrendingUp
 },
 {
   title: "Analytics",
