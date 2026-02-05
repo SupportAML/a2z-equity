@@ -5,8 +5,9 @@ import { LimitedPartner as LP_Entity } from "@/entities/LimitedPartner"; // Alia
 import { Investment } from "@/entities/Investment"; // Import Investment entity
 import { CapitalActivity } from "@/entities/CapitalActivity";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Users2, Building, PiggyBank, Banknote, CreditCard } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Users2, Building, Mail, Phone, Percent, PiggyBank, Banknote, CreditCard } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DeleteConfirmationDialog from "../components/ui/DeleteConfirmationDialog";
 

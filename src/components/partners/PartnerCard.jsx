@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Phone, Percent, DollarSign, Building, Users2, Edit, Trash2, ChevronDown, Plus, Banknote, CreditCard, Save, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { CapitalActivity } from "@/entities/CapitalActivity";
 
 function CapitalActivityForm({ lpId, onAddActivity }) {
     const [type, setType] = useState('contribution');

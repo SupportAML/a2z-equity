@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Deal } from "@/entities/Deal";
+import { Investment } from "@/entities/Investment";
 import { LimitedPartner } from "@/entities/LimitedPartner";
 import { CapitalActivity } from "@/entities/CapitalActivity";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

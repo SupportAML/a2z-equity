@@ -6,11 +6,12 @@ import { LimitedPartner } from "@/entities/LimitedPartner";
 import { GeneralPartner } from "@/entities/GeneralPartner";
 import { CapitalActivity } from "@/entities/CapitalActivity";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, List, LayoutGrid } from "lucide-react";
+import { Plus, Search, List, LayoutGrid, X } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import DealForm from "../components/deals/DealForm";
 import DealCard from "../components/deals/DealCard";
