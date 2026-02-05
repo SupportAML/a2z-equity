@@ -25,18 +25,26 @@ export default function LPPortalPage() {
     const [deletingActivity, setDeletingActivity] = useState(null);
 
     const fetchData = useCallback(async () => {
-        const [lpsData, investmentsData, dealsData, activitiesData] = await Promise.all([
-            LimitedPartner.list(),
-            Investment.list(),
-            Deal.list(),
-            CapitalActivity.list('-date')
-        ]);
-        setLps(lpsData);
-        setInvestments(investmentsData);
-        setDeals(dealsData);
-        setCapitalActivities(activitiesData);
-        if (lpsData.length > 0 && !selectedLpId) {
-            setSelectedLpId(lpsData[0].id);
+        try {
+            const [lpsData, investmentsData, dealsData, activitiesData] = await Promise.all([
+                LimitedPartner.list(),
+                Investment.list(),
+                Deal.list(),
+                CapitalActivity.list('-date')
+            ]);
+            setLps(lpsData);
+            setInvestments(investmentsData);
+            setDeals(dealsData);
+            setCapitalActivities(activitiesData);
+            if (lpsData.length > 0 && !selectedLpId) {
+                setSelectedLpId(lpsData[0].id);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+            setLps([]);
+            setInvestments([]);
+            setDeals([]);
+            setCapitalActivities([]);
         }
     }, [selectedLpId]);
 
