@@ -208,21 +208,17 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
 
   const getLpCapitalStatus = (lp) => {
     const totalInvested = lpInvestmentTotals[lp.id] || 0;
-    const currentDealInvestment = investments
-      .filter(inv => inv.lp_id === lp.id)
-      .reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
-    
     const fundsReceived = lpTotalFundsReceived[lp.id] || 0;
     const capitalCalled = lpTotalCapitalCalled[lp.id] || 0;
     
-    // Calculate capital on hand (funds received minus already invested)
+    // Calculate capital on hand (funds received minus already invested in other deals)
     const capitalOnHand = fundsReceived - totalInvested;
     
     // Calculate outstanding called capital (called but not yet received)
     const outstandingCalls = capitalCalled - fundsReceived;
     
-    // If we have sufficient capital on hand
-    if (capitalOnHand >= currentDealInvestment) {
+    // Green: LP has funds on hand available
+    if (capitalOnHand > 0) {
       return {
         color: 'text-green-600',
         label: `On Hand: $${capitalOnHand.toLocaleString()}`,
@@ -230,11 +226,8 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
       };
     }
     
-    // Calculate the deficit
-    const deficit = currentDealInvestment - capitalOnHand;
-    
-    // If the deficit is covered by outstanding calls
-    if (outstandingCalls >= deficit) {
+    // Blue: Capital has been called but not yet received
+    if (outstandingCalls > 0) {
       return {
         color: 'text-blue-600',
         label: `Called, Not Received: $${outstandingCalls.toLocaleString()}`,
@@ -242,12 +235,21 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
       };
     }
     
-    // If we need to make a new capital call
-    const needsCall = deficit - outstandingCalls;
+    // Red: Need to make a new capital call
+    const commitmentRemaining = (lp.commitment_amount || 0) - capitalCalled;
+    if (commitmentRemaining > 0) {
+      return {
+        color: 'text-red-600',
+        label: `Available to Call: $${commitmentRemaining.toLocaleString()}`,
+        amount: commitmentRemaining
+      };
+    }
+    
+    // Edge case: No capital available at all
     return {
-      color: 'text-red-600',
-      label: `Needs Call: $${needsCall.toLocaleString()}`,
-      amount: needsCall
+      color: 'text-gray-400',
+      label: 'No Capital Available',
+      amount: 0
     };
   };
 
