@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CheckCircle, Clock, DollarSign, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, DollarSign, AlertCircle, ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
 
 export default function CapitalCallsPage() {
   const [capitalCalls, setCapitalCalls] = useState([]);
@@ -15,9 +15,11 @@ export default function CapitalCallsPage() {
   const [lps, setLps] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [recordPaymentDialog, setRecordPaymentDialog] = useState(null);
+  const [editPaymentDialog, setEditPaymentDialog] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [expandedCalls, setExpandedCalls] = useState(new Set());
 
   useEffect(() => {
     loadData();
@@ -105,6 +107,53 @@ export default function CapitalCallsPage() {
     setPaymentNotes("");
   };
 
+  const openEditPaymentDialog = (payment, call) => {
+    setEditPaymentDialog({ payment, call });
+    setPaymentAmount(payment.amount.toString());
+    setPaymentDate(payment.date);
+    setPaymentNotes(payment.notes || "");
+  };
+
+  const handleEditPayment = async () => {
+    if (!editPaymentDialog || !paymentAmount) return;
+
+    try {
+      await base44.entities.CapitalActivity.update(editPaymentDialog.payment.id, {
+        amount: parseFloat(paymentAmount),
+        date: paymentDate,
+        notes: paymentNotes
+      });
+
+      setEditPaymentDialog(null);
+      setPaymentAmount("");
+      setPaymentNotes("");
+      loadData();
+    } catch (error) {
+      console.error("Error updating payment:", error);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId) => {
+    if (!confirm("Are you sure you want to delete this payment?")) return;
+
+    try {
+      await base44.entities.CapitalActivity.delete(paymentId);
+      loadData();
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+    }
+  };
+
+  const toggleExpanded = (callId) => {
+    const newExpanded = new Set(expandedCalls);
+    if (newExpanded.has(callId)) {
+      newExpanded.delete(callId);
+    } else {
+      newExpanded.add(callId);
+    }
+    setExpandedCalls(newExpanded);
+  };
+
   const getStatusBadge = (call) => {
     switch (call.status) {
       case 'paid':
@@ -150,34 +199,93 @@ export default function CapitalCallsPage() {
               </TableHeader>
               <TableBody>
                 {capitalCalls.map(call => (
-                  <TableRow key={call.id}>
-                    <TableCell>{new Date(call.date).toLocaleDateString()}</TableCell>
-                    <TableCell className="font-medium">{getLpName(call.lp_id)}</TableCell>
-                    <TableCell>{getDealName(call.deal_id)}</TableCell>
-                    <TableCell>${call.amount.toLocaleString()}</TableCell>
-                    <TableCell className="text-green-600">${call.totalPaid.toLocaleString()}</TableCell>
-                    <TableCell className={call.outstanding > 0 ? 'text-amber-600 font-medium' : 'text-slate-400'}>
-                      ${call.outstanding.toLocaleString()}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(call)}</TableCell>
-                    <TableCell>
-                      {call.outstanding > 0 && (
-                        <Button 
-                          size="sm" 
-                          onClick={() => openPaymentDialog(call)}
-                          className="bg-blue-600 hover:bg-blue-700"
-                        >
-                          <DollarSign className="w-4 h-4 mr-1" />
-                          Record Payment
-                        </Button>
-                      )}
-                      {call.payments.length > 0 && (
-                        <span className="text-xs text-slate-500 ml-2">
-                          {call.payments.length} payment{call.payments.length > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                  <React.Fragment key={call.id}>
+                    <TableRow>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {call.payments.length > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => toggleExpanded(call.id)}
+                            >
+                              {expandedCalls.has(call.id) ? 
+                                <ChevronDown className="w-4 h-4" /> : 
+                                <ChevronRight className="w-4 h-4" />
+                              }
+                            </Button>
+                          )}
+                          <span>{new Date(call.date).toLocaleDateString()}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{getLpName(call.lp_id)}</TableCell>
+                      <TableCell>{getDealName(call.deal_id)}</TableCell>
+                      <TableCell>${call.amount.toLocaleString()}</TableCell>
+                      <TableCell className="text-green-600">${call.totalPaid.toLocaleString()}</TableCell>
+                      <TableCell className={call.outstanding > 0 ? 'text-amber-600 font-medium' : 'text-slate-400'}>
+                        ${call.outstanding.toLocaleString()}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(call)}</TableCell>
+                      <TableCell>
+                        {call.outstanding > 0 && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => openPaymentDialog(call)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            <DollarSign className="w-4 h-4 mr-1" />
+                            Record Payment
+                          </Button>
+                        )}
+                        {call.payments.length > 0 && (
+                          <span className="text-xs text-slate-500 ml-2">
+                            {call.payments.length} payment{call.payments.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                    {expandedCalls.has(call.id) && call.payments.length > 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="bg-slate-50 p-4">
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold text-slate-700 mb-3">Payment History</h4>
+                            {call.payments.map(payment => (
+                              <div key={payment.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200">
+                                <div className="flex items-center gap-4">
+                                  <div className="text-sm">
+                                    <div className="font-medium">${payment.amount.toLocaleString()}</div>
+                                    <div className="text-slate-500 text-xs">{new Date(payment.date).toLocaleDateString()}</div>
+                                  </div>
+                                  {payment.notes && (
+                                    <div className="text-xs text-slate-500 italic">{payment.notes}</div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEditPaymentDialog(payment, call)}
+                                  >
+                                    <Pencil className="w-3 h-3 mr-1" />
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeletePayment(payment.id)}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))}
                 {capitalCalls.length === 0 && (
                   <TableRow>
@@ -261,6 +369,68 @@ export default function CapitalCallsPage() {
             </Button>
             <Button onClick={handleRecordPayment} className="bg-green-600 hover:bg-green-700">
               Record Payment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Payment Dialog */}
+      <Dialog open={!!editPaymentDialog} onOpenChange={() => setEditPaymentDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Payment</DialogTitle>
+          </DialogHeader>
+          {editPaymentDialog && (
+            <div className="space-y-4">
+              <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">LP:</span>
+                  <span className="font-medium">{getLpName(editPaymentDialog.call.lp_id)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Deal:</span>
+                  <span className="font-medium">{getDealName(editPaymentDialog.call.deal_id)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editPaymentAmount">Payment Amount</Label>
+                <Input
+                  id="editPaymentAmount"
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editPaymentDate">Payment Date</Label>
+                <Input
+                  id="editPaymentDate"
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editPaymentNotes">Notes (optional)</Label>
+                <Input
+                  id="editPaymentNotes"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  placeholder="e.g., Wire transfer received"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditPaymentDialog(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditPayment} className="bg-blue-600 hover:bg-blue-700">
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
