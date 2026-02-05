@@ -77,7 +77,7 @@ export default function DealsPage() {
             const urlParams = new URLSearchParams(window.location.search);
             const dealIdFromUrl = urlParams.get('deal_id');
             if (dealIdFromUrl) {
-                const dealToEdit = dealsData.find(d => d.id === dealIdFromUrl);
+                const dealToEdit = dealsWithFundingStatus.find(d => d.id === dealIdFromUrl);
                 if (dealToEdit) {
                     setEditingDeal(dealToEdit);
                     setShowForm(true);
