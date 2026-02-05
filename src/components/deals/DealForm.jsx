@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,14 +33,22 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
   
   const [investments, setInvestments] = useState(initialInvestments || []);
   const [lpInvestmentTotals, setLpInvestmentTotals] = useState({});
+  const [lpTotalFundsReceived, setLpTotalFundsReceived] = useState({});
+  const [lpTotalCapitalCalled, setLpTotalCapitalCalled] = useState({});
   const [calculatedIrr, setCalculatedIrr] = useState("");
   const [calculatedMoic, setCalculatedMoic] = useState("");
 
   useEffect(() => {
-    // Load all investments to calculate LP totals
-    const loadInvestmentTotals = async () => {
-      const allInvestments = await Investment.list();
+    // Load all investments and capital activities to calculate LP totals
+    const loadLpFinancials = async () => {
+      const [allInvestments, allCapitalActivities] = await Promise.all([
+        Investment.list(),
+        base44.entities.CapitalActivity.list()
+      ]);
+      
       const totals = {};
+      const fundsReceived = {};
+      const capitalCalled = {};
       
       allInvestments.forEach(inv => {
         // Skip investments from the current deal being edited to avoid double counting
@@ -50,10 +57,20 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
         totals[inv.lp_id] = (totals[inv.lp_id] || 0) + inv.amount;
       });
       
+      allCapitalActivities.forEach(activity => {
+        if (activity.type === 'funds_received') {
+          fundsReceived[activity.lp_id] = (fundsReceived[activity.lp_id] || 0) + activity.amount;
+        } else if (activity.type === 'contribution') {
+          capitalCalled[activity.lp_id] = (capitalCalled[activity.lp_id] || 0) + activity.amount;
+        }
+      });
+      
       setLpInvestmentTotals(totals);
+      setLpTotalFundsReceived(fundsReceived);
+      setLpTotalCapitalCalled(capitalCalled);
     };
     
-    loadInvestmentTotals();
+    loadLpFinancials();
   }, [deal]);
 
   useEffect(() => {
@@ -189,13 +206,49 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
     setFormData(prev => ({ ...prev, investment_amount: totalInvested }));
   }, [investments]);
 
-  const getUnallocatedFunds = (lp) => {
+  const getLpCapitalStatus = (lp) => {
     const totalInvested = lpInvestmentTotals[lp.id] || 0;
     const currentDealInvestment = investments
       .filter(inv => inv.lp_id === lp.id)
       .reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
     
-    return (lp.commitment_amount || 0) - totalInvested - currentDealInvestment;
+    const fundsReceived = lpTotalFundsReceived[lp.id] || 0;
+    const capitalCalled = lpTotalCapitalCalled[lp.id] || 0;
+    
+    // Calculate capital on hand (funds received minus already invested)
+    const capitalOnHand = fundsReceived - totalInvested;
+    
+    // Calculate outstanding called capital (called but not yet received)
+    const outstandingCalls = capitalCalled - fundsReceived;
+    
+    // If we have sufficient capital on hand
+    if (capitalOnHand >= currentDealInvestment) {
+      return {
+        color: 'text-green-600',
+        label: `On Hand: $${capitalOnHand.toLocaleString()}`,
+        amount: capitalOnHand
+      };
+    }
+    
+    // Calculate the deficit
+    const deficit = currentDealInvestment - capitalOnHand;
+    
+    // If the deficit is covered by outstanding calls
+    if (outstandingCalls >= deficit) {
+      return {
+        color: 'text-blue-600',
+        label: `Called, Not Received: $${outstandingCalls.toLocaleString()}`,
+        amount: outstandingCalls
+      };
+    }
+    
+    // If we need to make a new capital call
+    const needsCall = deficit - outstandingCalls;
+    return {
+      color: 'text-red-600',
+      label: `Needs Call: $${needsCall.toLocaleString()}`,
+      amount: needsCall
+    };
   };
 
   // Calculate derived values for display
@@ -503,13 +556,13 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
                                 <SelectTrigger className="flex-1"><SelectValue placeholder="Select LP" /></SelectTrigger>
                                 <SelectContent>
                                     {lps.map(lp => {
-                                        const unallocated = getUnallocatedFunds(lp);
+                                        const capitalStatus = getLpCapitalStatus(lp);
                                         return (
                                             <SelectItem key={lp.id} value={lp.id}>
                                                 <div className="flex justify-between items-center w-full">
                                                     <span>{lp.name}</span>
-                                                    <span className="text-xs text-slate-500 ml-4">
-                                                        Available: ${unallocated.toLocaleString()}
+                                                    <span className={`text-xs ml-4 font-medium ${capitalStatus.color}`}>
+                                                        {capitalStatus.label}
                                                     </span>
                                                 </div>
                                             </SelectItem>
