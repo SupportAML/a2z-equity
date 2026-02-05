@@ -17,7 +17,8 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
     name: deal?.name || "",
     description: deal?.description || "",
     investment_amount: deal?.investment_amount || "",
-    valuation_snapshots: deal?.valuation_snapshots || [], // Changed: now an array
+    funding_phase: deal?.funding_phase || "staging",
+    valuation_snapshots: deal?.valuation_snapshots || [],
     entry_date: deal?.entry_date || new Date().toISOString().split('T')[0],
     estimated_holding_period_years: deal?.estimated_holding_period_years || "",
     status: deal?.status || "active",
@@ -36,6 +37,8 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
   const [lpInvestmentTotals, setLpInvestmentTotals] = useState({});
   const [lpTotalFundsReceived, setLpTotalFundsReceived] = useState({});
   const [lpTotalCapitalCalled, setLpTotalCapitalCalled] = useState({});
+  const [lpDealSpecificFundsReceived, setLpDealSpecificFundsReceived] = useState({});
+  const [lpDealSpecificCapitalCalled, setLpDealSpecificCapitalCalled] = useState({});
   const [calculatedIrr, setCalculatedIrr] = useState("");
   const [calculatedMoic, setCalculatedMoic] = useState("");
   const [dealTotalFundsReceived, setDealTotalFundsReceived] = useState(0);
@@ -51,6 +54,8 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
       const totals = {};
       const fundsReceived = {};
       const capitalCalled = {};
+      const dealSpecificFundsReceived = {};
+      const dealSpecificCapitalCalled = {};
       let dealFundsReceived = 0;
       
       allInvestments.forEach(inv => {
@@ -63,18 +68,27 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
       allCapitalActivities.forEach(activity => {
         if (activity.type === 'funds_received') {
           fundsReceived[activity.lp_id] = (fundsReceived[activity.lp_id] || 0) + activity.amount;
-          // Calculate total funds received for THIS deal
+          
+          // Track deal-specific funds received for THIS deal
           if (deal && activity.deal_id === deal.id) {
             dealFundsReceived += activity.amount;
+            dealSpecificFundsReceived[activity.lp_id] = (dealSpecificFundsReceived[activity.lp_id] || 0) + activity.amount;
           }
         } else if (activity.type === 'contribution') {
           capitalCalled[activity.lp_id] = (capitalCalled[activity.lp_id] || 0) + activity.amount;
+          
+          // Track deal-specific capital called for THIS deal
+          if (deal && activity.deal_id === deal.id) {
+            dealSpecificCapitalCalled[activity.lp_id] = (dealSpecificCapitalCalled[activity.lp_id] || 0) + activity.amount;
+          }
         }
       });
       
       setLpInvestmentTotals(totals);
       setLpTotalFundsReceived(fundsReceived);
       setLpTotalCapitalCalled(capitalCalled);
+      setLpDealSpecificFundsReceived(dealSpecificFundsReceived);
+      setLpDealSpecificCapitalCalled(dealSpecificCapitalCalled);
       setDealTotalFundsReceived(dealFundsReceived);
     };
     
@@ -215,6 +229,36 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
   }, [investments]);
 
   const getLpCapitalStatus = (lp) => {
+    // If editing an existing deal, show deal-specific status
+    if (deal) {
+      const dealSpecificFundsReceived = lpDealSpecificFundsReceived[lp.id] || 0;
+      const dealSpecificCapitalCalled = lpDealSpecificCapitalCalled[lp.id] || 0;
+      const dealSpecificOutstanding = dealSpecificCapitalCalled - dealSpecificFundsReceived;
+      
+      // Check if this LP has any involvement in this specific deal
+      const lpInvestmentInDeal = investments.find(inv => inv.lp_id === lp.id);
+      if (lpInvestmentInDeal || dealSpecificCapitalCalled > 0) {
+        // Green: LP has fully paid for this deal
+        if (dealSpecificFundsReceived >= dealSpecificCapitalCalled) {
+          return {
+            color: 'text-green-600',
+            label: `✓ Paid for this deal: $${dealSpecificFundsReceived.toLocaleString()}`,
+            amount: dealSpecificFundsReceived
+          };
+        }
+        
+        // Blue: Capital called for this deal but not yet received
+        if (dealSpecificOutstanding > 0) {
+          return {
+            color: 'text-blue-600',
+            label: `This Deal - Called, Not Received: $${dealSpecificOutstanding.toLocaleString()}`,
+            amount: dealSpecificOutstanding
+          };
+        }
+      }
+    }
+    
+    // For new deals or LPs not yet in this deal, show global status
     const totalInvested = lpInvestmentTotals[lp.id] || 0;
     const fundsReceived = lpTotalFundsReceived[lp.id] || 0;
     const capitalCalled = lpTotalCapitalCalled[lp.id] || 0;
@@ -238,7 +282,7 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
     if (outstandingCalls > 0) {
       return {
         color: 'text-blue-600',
-        label: `Called, Not Received: $${outstandingCalls.toLocaleString()}`,
+        label: `Other Deals - Called, Not Received: $${outstandingCalls.toLocaleString()}`,
         amount: outstandingCalls
       };
     }
@@ -294,6 +338,38 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
                 <div className="space-y-2">
                     <Label htmlFor="sector">Sector</Label>
                     <Input id="sector" value={formData.sector} onChange={(e) => handleInputChange('sector', e.target.value)} />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="funding_phase">Funding Phase *</Label>
+                    <Select value={formData.funding_phase} onValueChange={(v) => handleInputChange('funding_phase', v)}>
+                        <SelectTrigger><SelectValue/></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="staging">
+                                <div className="flex flex-col">
+                                    <span className="font-medium">Staging</span>
+                                    <span className="text-xs text-slate-500">Planning commitments - funds not yet collected</span>
+                                </div>
+                            </SelectItem>
+                            <SelectItem value="funded">
+                                <div className="flex flex-col">
+                                    <span className="font-medium">Funded & Paid</span>
+                                    <span className="text-xs text-slate-500">All funds collected and deal is active</span>
+                                </div>
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {formData.funding_phase === 'staging' && (
+                        <p className="text-xs text-amber-600 flex items-center gap-1 mt-1">
+                            <span>⚠️</span>
+                            <span>This deal is in planning - funds have not been fully collected yet</span>
+                        </p>
+                    )}
+                    {formData.funding_phase === 'funded' && deal && dealTotalFundsReceived >= formData.investment_amount && (
+                        <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                            <span>✓</span>
+                            <span>All funds received - deal is fully funded</span>
+                        </p>
+                    )}
                 </div>
             </div>
 
