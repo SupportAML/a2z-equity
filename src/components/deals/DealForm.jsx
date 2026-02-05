@@ -38,6 +38,7 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
   const [lpTotalCapitalCalled, setLpTotalCapitalCalled] = useState({});
   const [calculatedIrr, setCalculatedIrr] = useState("");
   const [calculatedMoic, setCalculatedMoic] = useState("");
+  const [dealTotalFundsReceived, setDealTotalFundsReceived] = useState(0);
 
   useEffect(() => {
     // Load all investments and capital activities to calculate LP totals
@@ -50,6 +51,7 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
       const totals = {};
       const fundsReceived = {};
       const capitalCalled = {};
+      let dealFundsReceived = 0;
       
       allInvestments.forEach(inv => {
         // Skip investments from the current deal being edited to avoid double counting
@@ -61,6 +63,10 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
       allCapitalActivities.forEach(activity => {
         if (activity.type === 'funds_received') {
           fundsReceived[activity.lp_id] = (fundsReceived[activity.lp_id] || 0) + activity.amount;
+          // Calculate total funds received for THIS deal
+          if (deal && activity.deal_id === deal.id) {
+            dealFundsReceived += activity.amount;
+          }
         } else if (activity.type === 'contribution') {
           capitalCalled[activity.lp_id] = (capitalCalled[activity.lp_id] || 0) + activity.amount;
         }
@@ -69,6 +75,7 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
       setLpInvestmentTotals(totals);
       setLpTotalFundsReceived(fundsReceived);
       setLpTotalCapitalCalled(capitalCalled);
+      setDealTotalFundsReceived(dealFundsReceived);
     };
     
     loadLpFinancials();
@@ -314,8 +321,31 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="investment_amount">Total Investment Amount *</Label>
-                            <Input id="investment_amount" type="number" value={formData.investment_amount} required disabled />
-                            <p className="text-xs text-slate-500">Calculated from LP investments below</p>
+                            <div className="flex gap-2">
+                              <Input id="investment_amount" type="number" value={formData.investment_amount} required disabled className="flex-1" />
+                              {deal && formData.investment_amount > 0 && (
+                                <Badge 
+                                  className={`self-center whitespace-nowrap ${
+                                    dealTotalFundsReceived >= formData.investment_amount 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                >
+                                  {dealTotalFundsReceived >= formData.investment_amount 
+                                    ? '✓ Fully Funded' 
+                                    : `${Math.round((dealTotalFundsReceived / formData.investment_amount) * 100)}% Funded`
+                                  }
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              Calculated from LP investments below
+                              {deal && dealTotalFundsReceived > 0 && (
+                                <span className="block mt-1">
+                                  Funds received: ${dealTotalFundsReceived.toLocaleString()} of ${formData.investment_amount.toLocaleString()}
+                                </span>
+                              )}
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="calculated_irr">Calculated IRR (%)</Label>

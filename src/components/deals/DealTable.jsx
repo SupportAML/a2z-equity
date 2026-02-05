@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +22,7 @@ export default function DealTable({ deals, onEdit, onDelete, selectedDealsForWat
                         <TableHead className="w-12">Select</TableHead>
                         <TableHead>Deal Name</TableHead>
                         <TableHead>Investment</TableHead>
+                        <TableHead>Funding Status</TableHead>
                         <TableHead>Current Valuation</TableHead>
                         <TableHead>Snapshot Valuation</TableHead>
                         <TableHead>Entry Date</TableHead>
@@ -49,6 +49,17 @@ export default function DealTable({ deals, onEdit, onDelete, selectedDealsForWat
                                 </TableCell>
                                 <TableCell className="font-medium">{deal.name}</TableCell>
                                 <TableCell>${deal.investment_amount?.toLocaleString()}</TableCell>
+                                <TableCell>
+                                    {deal.funding_status === 'fully_funded' && (
+                                        <Badge className="bg-green-100 text-green-800">✓ Fully Funded</Badge>
+                                    )}
+                                    {deal.funding_status === 'partially_funded' && (
+                                        <Badge className="bg-amber-100 text-amber-800">{deal.funding_percentage}% Funded</Badge>
+                                    )}
+                                    {!deal.funding_status && (
+                                        <span className="text-slate-400 text-sm">Not tracked</span>
+                                    )}
+                                </TableCell>
                                 <TableCell>${deal.current_valuation?.toLocaleString()}</TableCell>
                                 <TableCell>
                                     {deal.valuation_at_date ? (

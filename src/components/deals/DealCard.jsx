@@ -39,6 +39,12 @@ export default function DealCard({ deal, onEdit, onDelete, selectedForWaterfall,
                         </div>
                         <div>
                             <CardTitle className="text-lg font-bold text-slate-800">{deal.name}</CardTitle>
+                            {deal.funding_status === 'fully_funded' && (
+                                <Badge className="bg-green-100 text-green-800 text-xs mt-1">✓ Fully Funded</Badge>
+                            )}
+                            {deal.funding_status === 'partially_funded' && (
+                                <Badge className="bg-amber-100 text-amber-800 text-xs mt-1">{deal.funding_percentage}% Funded</Badge>
+                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
