@@ -229,36 +229,33 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
   }, [investments]);
 
   const getLpCapitalStatus = (lp) => {
-    // If editing an existing deal, show deal-specific status
+    // If editing an existing deal, show deal-specific status first
     if (deal) {
       const dealSpecificFundsReceived = lpDealSpecificFundsReceived[lp.id] || 0;
       const dealSpecificCapitalCalled = lpDealSpecificCapitalCalled[lp.id] || 0;
-      const dealSpecificOutstanding = dealSpecificCapitalCalled - dealSpecificFundsReceived;
       
-      // Check if this LP has any involvement in this specific deal
-      const lpInvestmentInDeal = investments.find(inv => inv.lp_id === lp.id);
-      if (lpInvestmentInDeal || dealSpecificCapitalCalled > 0) {
-        // Green: LP has fully paid for this deal
+      // If this LP has existing investments in this deal
+      if (dealSpecificCapitalCalled > 0) {
+        // Check if funds have been fully received for this deal
         if (dealSpecificFundsReceived >= dealSpecificCapitalCalled) {
           return {
             color: 'text-green-600',
             label: `✓ Paid for this deal: $${dealSpecificFundsReceived.toLocaleString()}`,
             amount: dealSpecificFundsReceived
           };
-        }
-        
-        // Blue: Capital called for this deal but not yet received
-        if (dealSpecificOutstanding > 0) {
+        } else {
+          // Capital called but not fully received for THIS deal
+          const outstanding = dealSpecificCapitalCalled - dealSpecificFundsReceived;
           return {
             color: 'text-blue-600',
-            label: `This Deal - Called, Not Received: $${dealSpecificOutstanding.toLocaleString()}`,
-            amount: dealSpecificOutstanding
+            label: `This Deal Outstanding: $${outstanding.toLocaleString()}`,
+            amount: outstanding
           };
         }
       }
     }
     
-    // For new deals or LPs not yet in this deal, show global status
+    // For new LPs being added to this deal, show global capital availability
     const totalInvested = lpInvestmentTotals[lp.id] || 0;
     const fundsReceived = lpTotalFundsReceived[lp.id] || 0;
     const capitalCalled = lpTotalCapitalCalled[lp.id] || 0;
@@ -266,23 +263,23 @@ export default function DealForm({ deal, lps, initialInvestments, onSubmit, onCa
     // Calculate capital on hand (funds received minus already invested in other deals)
     const capitalOnHand = fundsReceived - totalInvested;
     
-    // Calculate outstanding called capital (called but not yet received)
+    // Calculate outstanding called capital (called but not yet received across all deals)
     const outstandingCalls = capitalCalled - fundsReceived;
     
     // Green: LP has funds on hand available
     if (capitalOnHand > 0) {
       return {
         color: 'text-green-600',
-        label: `On Hand: $${capitalOnHand.toLocaleString()}`,
+        label: `Available On Hand: $${capitalOnHand.toLocaleString()}`,
         amount: capitalOnHand
       };
     }
     
-    // Blue: Capital has been called but not yet received
+    // Blue: Capital has been called but not yet received (other deals)
     if (outstandingCalls > 0) {
       return {
         color: 'text-blue-600',
-        label: `Other Deals - Called, Not Received: $${outstandingCalls.toLocaleString()}`,
+        label: `Other Deals Outstanding: $${outstandingCalls.toLocaleString()}`,
         amount: outstandingCalls
       };
     }
