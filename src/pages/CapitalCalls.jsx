@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { CheckCircle, Clock, DollarSign, AlertCircle, ChevronDown, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { CheckCircle, Clock, DollarSign, AlertCircle, ChevronDown, ChevronRight, Pencil, Trash2, Calendar } from "lucide-react";
 
 export default function CapitalCallsPage() {
   const [capitalCalls, setCapitalCalls] = useState([]);
@@ -20,6 +20,7 @@ export default function CapitalCallsPage() {
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
   const [paymentNotes, setPaymentNotes] = useState("");
   const [expandedCalls, setExpandedCalls] = useState(new Set());
+  const [lpAvailableFunds, setLpAvailableFunds] = useState({});
 
   useEffect(() => {
     loadData();
@@ -28,11 +29,27 @@ export default function CapitalCallsPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [capitalActivities, dealsData, lpsData] = await Promise.all([
+      const [capitalActivities, dealsData, lpsData, investments] = await Promise.all([
         base44.entities.CapitalActivity.list('-date'),
         base44.entities.Deal.list(),
-        base44.entities.LimitedPartner.list()
+        base44.entities.LimitedPartner.list(),
+        base44.entities.Investment.list()
       ]);
+
+      // Calculate available funds for each LP
+      const lpFunds = {};
+      lpsData.forEach(lp => {
+        const fundsReceived = capitalActivities
+          .filter(ca => ca.lp_id === lp.id && ca.type === 'funds_received')
+          .reduce((sum, ca) => sum + ca.amount, 0);
+        
+        const totalInvested = investments
+          .filter(inv => inv.lp_id === lp.id)
+          .reduce((sum, inv) => sum + inv.amount, 0);
+        
+        lpFunds[lp.id] = fundsReceived - totalInvested;
+      });
+      setLpAvailableFunds(lpFunds);
 
       // Filter only capital calls (contributions)
       const calls = capitalActivities.filter(ca => ca.type === 'contribution');
@@ -108,12 +125,20 @@ export default function CapitalCallsPage() {
   const handleRecordPayment = async () => {
     if (!recordPaymentDialog || !paymentAmount) return;
 
+    const amount = parseFloat(paymentAmount);
+    const availableFunds = lpAvailableFunds[recordPaymentDialog.lp_id] || 0;
+
+    if (amount > availableFunds) {
+      alert(`Insufficient funds. LP has $${availableFunds.toLocaleString()} available.`);
+      return;
+    }
+
     try {
       await base44.entities.CapitalActivity.create({
         lp_id: recordPaymentDialog.lp_id,
         deal_id: recordPaymentDialog.deal_id,
         type: 'funds_received',
-        amount: parseFloat(paymentAmount),
+        amount: amount,
         date: paymentDate,
         notes: paymentNotes || `Payment for capital call from ${new Date(recordPaymentDialog.date).toLocaleDateString()}`,
         related_contribution_id: recordPaymentDialog.id
@@ -132,8 +157,9 @@ export default function CapitalCallsPage() {
 
   const openPaymentDialog = (call) => {
     setRecordPaymentDialog(call);
-    setPaymentAmount(call.outstanding.toString());
-    setPaymentDate(new Date().toISOString().split('T')[0]);
+    const availableFunds = lpAvailableFunds[call.lp_id] || 0;
+    setPaymentAmount(Math.min(call.outstanding, availableFunds).toString());
+    setPaymentDate(call.date); // Default to capital call date
     setPaymentNotes("");
   };
 
@@ -268,7 +294,7 @@ export default function CapitalCallsPage() {
                             className="bg-blue-600 hover:bg-blue-700"
                           >
                             <DollarSign className="w-4 h-4 mr-1" />
-                            Record Payment
+                            Apply Available Funds
                           </Button>
                         )}
                         {call.payments.length > 0 && (
@@ -337,7 +363,7 @@ export default function CapitalCallsPage() {
       <Dialog open={!!recordPaymentDialog} onOpenChange={() => setRecordPaymentDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Record Payment Received</DialogTitle>
+            <DialogTitle>Apply Available Funds</DialogTitle>
           </DialogHeader>
           {recordPaymentDialog && (
             <div className="space-y-4">
@@ -362,6 +388,12 @@ export default function CapitalCallsPage() {
                   <span className="text-slate-600">Outstanding:</span>
                   <span className="font-semibold text-amber-600">${recordPaymentDialog.outstanding.toLocaleString()}</span>
                 </div>
+                <div className="flex justify-between text-sm border-t border-slate-200 pt-2">
+                  <span className="text-slate-600">Available Funds:</span>
+                  <span className={`font-semibold ${(lpAvailableFunds[recordPaymentDialog.lp_id] || 0) >= recordPaymentDialog.outstanding ? 'text-green-600' : 'text-red-600'}`}>
+                    ${(lpAvailableFunds[recordPaymentDialog.lp_id] || 0).toLocaleString()}
+                  </span>
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -372,11 +404,27 @@ export default function CapitalCallsPage() {
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
                   placeholder="0.00"
+                  max={lpAvailableFunds[recordPaymentDialog.lp_id] || 0}
                 />
+                {parseFloat(paymentAmount) > (lpAvailableFunds[recordPaymentDialog.lp_id] || 0) && (
+                  <p className="text-xs text-red-600">⚠️ Amount exceeds available funds</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="paymentDate">Payment Date</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="paymentDate">Payment Date</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setPaymentDate(new Date().toISOString().split('T')[0])}
+                    className="h-7 text-xs"
+                  >
+                    <Calendar className="w-3 h-3 mr-1" />
+                    Set to Today
+                  </Button>
+                </div>
                 <Input
                   id="paymentDate"
                   type="date"
@@ -400,8 +448,12 @@ export default function CapitalCallsPage() {
             <Button variant="outline" onClick={() => setRecordPaymentDialog(null)}>
               Cancel
             </Button>
-            <Button onClick={handleRecordPayment} className="bg-green-600 hover:bg-green-700">
-              Record Payment
+            <Button 
+              onClick={handleRecordPayment} 
+              className="bg-green-600 hover:bg-green-700"
+              disabled={parseFloat(paymentAmount) > (lpAvailableFunds[recordPaymentDialog?.lp_id] || 0)}
+            >
+              Apply Funds
             </Button>
           </DialogFooter>
         </DialogContent>
