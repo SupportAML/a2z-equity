@@ -1,0 +1,121 @@
+{
+  "name": "Deal",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Deal name/title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Deal description"
+    },
+    "investment_amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Total investment amount"
+    },
+    "valuation_snapshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "valuation": {
+            "type": "number",
+            "minimum": 0
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "valuation",
+          "date"
+        ]
+      },
+      "description": "Array of valuation snapshots with dates"
+    },
+    "entry_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of initial investment"
+    },
+    "estimated_holding_period_years": {
+      "type": "number",
+      "description": "Estimated holding period in years from entry date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "exited",
+        "written_off",
+        "on_hold"
+      ],
+      "default": "active",
+      "description": "Deal status"
+    },
+    "sector": {
+      "type": "string",
+      "description": "Industry sector"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "seed",
+        "series_a",
+        "series_b",
+        "series_c",
+        "growth",
+        "other"
+      ],
+      "description": "Investment stage"
+    },
+    "attachment_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs of deal attachments"
+    },
+    "enabled_for_analysis": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to include in trend analysis"
+    },
+    "waterfall_lp_pref": {
+      "type": "number",
+      "default": 8,
+      "description": "LP preferred return percentage"
+    },
+    "waterfall_gp_catchup": {
+      "type": "number",
+      "default": 2,
+      "description": "GP catchup percentage (from pref to pref+catchup)"
+    },
+    "waterfall_split_1_threshold": {
+      "type": "number",
+      "default": 15,
+      "description": "First carry split threshold IRR percentage"
+    },
+    "waterfall_split_1_gp": {
+      "type": "number",
+      "default": 20,
+      "description": "GP percentage in first split tier"
+    },
+    "waterfall_split_2_gp": {
+      "type": "number",
+      "default": 50,
+      "description": "GP percentage in second split tier (above threshold)"
+    }
+  },
+  "required": [
+    "name",
+    "investment_amount",
+    "entry_date"
+  ]
+}

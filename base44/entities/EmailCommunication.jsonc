@@ -1,0 +1,64 @@
+{
+  "name": "EmailCommunication",
+  "type": "object",
+  "properties": {
+    "lp_id": {
+      "type": "string",
+      "description": "ID of the Limited Partner"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "body": {
+      "type": "string",
+      "description": "Email body content (HTML)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "scheduled",
+        "sent",
+        "failed"
+      ],
+      "default": "scheduled",
+      "description": "Status of the email"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the email is scheduled to be sent"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the email was actually sent"
+    },
+    "include_pdf_report": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to include PDF performance report"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error message if sending failed"
+    },
+    "communication_type": {
+      "type": "string",
+      "enum": [
+        "quarterly_report",
+        "annual_report",
+        "capital_call",
+        "distribution_notice",
+        "custom"
+      ],
+      "default": "custom",
+      "description": "Type of communication"
+    }
+  },
+  "required": [
+    "lp_id",
+    "subject",
+    "body"
+  ]
+}

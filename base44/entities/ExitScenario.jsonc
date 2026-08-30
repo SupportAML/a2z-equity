@@ -1,0 +1,35 @@
+{
+  "name": "ExitScenario",
+  "type": "object",
+  "properties": {
+    "deal_id": {
+      "type": "string",
+      "description": "The ID of the associated deal"
+    },
+    "scenario_name": {
+      "type": "string",
+      "description": "Name of the scenario (e.g., Acquisition, IPO)"
+    },
+    "exit_valuation": {
+      "type": "number",
+      "minimum": 0,
+      "description": "The projected exit valuation for this scenario"
+    },
+    "probability": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The estimated probability of this scenario occurring (%)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Details about the scenario"
+    }
+  },
+  "required": [
+    "deal_id",
+    "scenario_name",
+    "exit_valuation",
+    "probability"
+  ]
+}

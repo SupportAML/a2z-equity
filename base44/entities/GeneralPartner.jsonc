@@ -1,0 +1,38 @@
+{
+  "name": "GeneralPartner",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the General Partner"
+    },
+    "ownership_percentage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Ownership percentage in the fund"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Contact email"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "inactive"
+      ],
+      "default": "active",
+      "description": "GP status"
+    }
+  },
+  "required": [
+    "name",
+    "ownership_percentage"
+  ]
+}

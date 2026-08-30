@@ -1,0 +1,45 @@
+{
+  "name": "Investment",
+  "type": "object",
+  "properties": {
+    "lp_id": {
+      "type": "string",
+      "description": "Limited Partner ID"
+    },
+    "deal_id": {
+      "type": "string",
+      "description": "Deal ID"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Investment amount"
+    },
+    "investment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of investment"
+    },
+    "allocation_percentage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Percentage allocation of the deal"
+    },
+    "current_value": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Current value of the investment"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Investment notes"
+    }
+  },
+  "required": [
+    "lp_id",
+    "deal_id",
+    "amount",
+    "investment_date"
+  ]
+}
